@@ -1,0 +1,93 @@
+// Mapper class
+import java.io.IOException;
+import java.util.*;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.conf.*;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+
+
+public static class Map extends Mapper<LongWritable, Text, Text, IntWritable> {
+
+public void map(LongWritable key, Text value, Context context)
+throws IOException, InterruptedException {
+
+String record = value.toString();
+String[] parts = record.split(",");
+context.write(new Text(parts[0]), new IntWritable(Integer.parseInt(parts[1])));
+}
+}
+
+// Reducer class
+import java.io.IOException;
+import java.util.*;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.conf.*;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+public static class Red extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+public void reduce(Text key, Iterable<IntWritable> values,Context context) throws IOException, InterruptedException {
+
+int maxValue = 0;
+
+
+for (IntWritable val : values) {
+maxValue = Math.max(maxValue, val.get());
+}
+
+context.write(key, new IntWritable(maxValue));
+}
+}
+
+//Driver class 
+import java.io.IOException;
+import java.util.*;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.conf.*;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+public class Driver  {
+public static void main(String[] args) throws Exception {
+
+Configuration conf = new Configuration();
+
+Job job = new Job(conf, "tempmax");
+
+job.setJarByClass(Driver.class);
+
+job.setMapOutputKeyClass(Text.class);
+
+job.setMapOutputValueClass(IntWritable.class);
+
+job.setOutputKeyClass(Text.class);
+
+job.setOutputValueClass(IntWritable.class);
+
+job.setMapperClass(Map.class);
+
+job.setReducerClass(Red.class);
+
+job.setInputFormatClass(TextInputFormat.class);
+
+job.setOutputFormatClass(TextOutputFormat.class);
+
+FileInputFormat.addInputPath(job, new Path(args[0]));
+
+FileOutputFormat.setOutputPath(job,new Path(args[1]));
+
+job.waitForCompletion(true);
+}
+}
